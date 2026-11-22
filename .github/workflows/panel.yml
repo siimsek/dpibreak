@@ -33,6 +33,21 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
+      - name: Check Windows installer syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path gui/install-windows.ps1).Path,
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
       - name: Clippy (panel, plain build)
         run: cargo clippy --locked -p dpibreak-gui --all-targets -- -D warnings
 
@@ -52,7 +67,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: DPIBreak-Panel
-          path: dist/DPIBreak-Panel.exe
+          path: |
+            dist/DPIBreak-Panel.exe
+            dist/DPIBreak-Panel.exe.sha256
           if-no-files-found: error
 
   linux:
@@ -75,6 +92,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
+      - name: Check Linux installer syntax
+        run: sh -n gui/install-linux.sh
+
       - name: Clippy (panel, plain build)
         run: cargo clippy --locked -p dpibreak-gui --all-targets -- -D warnings
 
@@ -92,5 +112,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: DPIBreak-Panel-linux-x86_64
-          path: dist/DPIBreak-Panel-linux-x86_64
+          path: |
+            dist/DPIBreak-Panel-linux-x86_64
+            dist/DPIBreak-Panel-linux-x86_64.sha256
           if-no-files-found: error

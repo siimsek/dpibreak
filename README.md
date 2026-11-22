@@ -25,6 +25,23 @@ Linux.  `dpibreak -h` for options.
 
 ### DPIBreak Panel (Windows and Linux)
 
+Download and launch the latest panel with one command:
+
+```powershell
+irm https://raw.githubusercontent.com/siimsek/dpibreak/master/gui/install-windows.ps1 | iex
+```
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/siimsek/dpibreak/master/gui/install-linux.sh | sh
+```
+
+The Windows command installs a verified per-user copy and launches it.
+The Linux command verifies the release checksum, installs to
+`~/.local/bin/dpibreak-panel`, and launches it. The Linux panel release
+must include the x86-64 executable and its `.sha256` file. The existing
+`winget install dpibreak` command installs the DPIBreak command-line
+program; the Panel is distributed separately.
+
 Prefer clicking to typing? Download
 [`DPIBreak-Panel.exe`](https://github.com/siimsek/dpibreak/releases/latest/download/DPIBreak-Panel.exe)
 on Windows, or

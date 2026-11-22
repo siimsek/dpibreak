@@ -1,5 +1,7 @@
 ## [Unreleased]
 ### Added
+- Checksum-verified one-command installers that download and launch
+  the Windows or Linux DPIBreak Panel.
 - DPIBreak Panel (`gui/`, Windows and Linux): single-file control panels with
   protection status, a connection test that tells DPI, DNS and IP
   blocking apart, a search for working settings, and service
