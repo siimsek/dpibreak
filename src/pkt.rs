@@ -286,6 +286,15 @@ pub fn handle_packet(pkt: &[u8], buf: &mut Vec<u8>) -> Result<bool> {
         return Ok(false);
     }
 
+    let exclude = opt::exclude();
+    if !exclude.is_empty()
+        && let Some(host) = tls::sni(view.tcp.payload())
+        && exclude.matches(host)
+    {
+        crate::debug!("handle_packet: {host} excluded; pass through");
+        return Ok(false);
+    }
+
     // TODO: if clienthello packet has been (unlikely) fragmented,
     // we should find the second part and drop, reassemble it here.
 

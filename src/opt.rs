@@ -96,6 +96,40 @@ impl std::fmt::Display for SegmentOrder {
     }
 }
 
+/// Domain patterns excluded from bypass (`-b, --exclude`).
+#[derive(Default)]
+pub struct DomainList(Vec<String>);
+
+impl DomainList {
+    fn push(&mut self, pattern: String) -> Result<()> {
+        let p = pattern.trim().trim_end_matches('.').to_ascii_lowercase();
+        let bare = p.strip_prefix("*.").unwrap_or(&p);
+        if bare.is_empty() || bare.contains('*') || bare.contains(char::is_whitespace) {
+            return Err(anyhow!("--exclude: invalid domain pattern '{pattern}'"));
+        }
+        self.0.push(p);
+        Ok(())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn matches(&self, host: &str) -> bool {
+        self.0.iter().any(|p| crate::tls::domain_matches(p, host))
+    }
+}
+
+impl std::fmt::Display for DomainList {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if self.0.is_empty() {
+            write!(f, "(none)")
+        } else {
+            write!(f, "{}", self.0.join(","))
+        }
+    }
+}
+
 static OPT_DAEMON: OnceLock<bool> = OnceLock::new();
 static OPT_LOG_LEVEL: OnceLock<LogLevel> = OnceLock::new();
 static OPT_NO_SPLASH: OnceLock<bool> = OnceLock::new();
@@ -113,6 +147,7 @@ static OPT_FORWARD: OnceLock<bool> = OnceLock::new();
 #[cfg(target_os = "linux")]
 static OPT_NO_RULES: OnceLock<bool> = OnceLock::new();
 static OPT_SEGMENT_ORDER: OnceLock<SegmentOrder> = OnceLock::new();
+static OPT_EXCLUDE: OnceLock<DomainList> = OnceLock::new();
 
 const DEFAULT_DAEMON: bool = false;
 #[cfg(debug_assertions)]
@@ -153,6 +188,7 @@ pub struct Opt {
     #[cfg(target_os = "linux")]
     no_rules: bool,
     segment_order: SegmentOrder,
+    exclude: DomainList,
 }
 
 impl Opt {
@@ -166,6 +202,7 @@ impl Opt {
         let mut fake_autottl = DEFAULT_FAKE_AUTOTTL;
         let mut fake_badsum = DEFAULT_FAKE_BADSUM;
         let mut segment_order = SegmentOrder::new(DEFAULT_SEGMENT_ORDER)?;
+        let mut exclude = DomainList::default();
 
         #[cfg(target_os = "linux")]
         let mut queue_num: u16 = DEFAULT_QUEUE_NUM;
@@ -226,6 +263,10 @@ impl Opt {
                     segment_order = SegmentOrder::new(&s)?;
                 }
 
+                "-b" | "--exclude" => {
+                    exclude.push(take_value(&mut args, argv)?)?;
+                }
+
                 "--fake" => {
                     fake = true;
                 }
@@ -273,6 +314,7 @@ impl Opt {
             log_level,
             no_splash,
             segment_order,
+            exclude,
             fake,
             fake_ttl,
             fake_autottl,
@@ -295,6 +337,7 @@ impl Opt {
         set_opt("OPT_NO_SPLASH", &OPT_NO_SPLASH, self.no_splash)?;
 
         set_opt("OPT_SEGMENT_ORDER", &OPT_SEGMENT_ORDER, self.segment_order)?;
+        set_opt("OPT_EXCLUDE", &OPT_EXCLUDE, self.exclude)?;
 
         set_opt("OPT_DELAY_MS", &OPT_DELAY_MS, self.delay_ms)?;
         set_opt("OPT_FAKE", &OPT_FAKE, self.fake)?;
@@ -336,6 +379,7 @@ impl InitializedOpts {
         #[cfg(target_os = "linux")]
         crate::info!("OPT_NO_RULES: {}", no_rules());
         crate::info!("OPT_SEGMENT_ORDER: {}", segment_order());
+        crate::info!("OPT_EXCLUDE: {}", exclude());
     }
 }
 
@@ -349,6 +393,11 @@ pub fn no_splash() -> bool {
 
 pub fn segment_order() -> &'static SegmentOrder {
     OPT_SEGMENT_ORDER.get().unwrap()
+}
+
+pub fn exclude() -> &'static DomainList {
+    static EMPTY: DomainList = DomainList(Vec::new());
+    OPT_EXCLUDE.get().unwrap_or(&EMPTY)
 }
 
 pub fn log_level() -> LogLevel {
@@ -454,6 +503,12 @@ fn usage() {
     );
     println!(
         "                                          Must include 0 (default: {DEFAULT_SEGMENT_ORDER})"
+    );
+    println!(
+        "  -b, --exclude <domain>                  Do not touch ClientHello whose SNI matches domain."
+    );
+    println!(
+        "                                          `*.example.com' matches subdomains. Repeatable"
     );
     println!();
     println!("See dpibreak(1) for more information.");
