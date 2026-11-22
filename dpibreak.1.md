@@ -96,20 +96,20 @@ IPv6. (Default: 1)
 **--nft-command *\<string\>***  
 Custom nftables command to be executed. (Default: nft)
 
-**-b**, **--exclude** *\<domain\>*  
+**-b**, **--exclude** *\<domain\>*\
 Pass the TLS ClientHello through untouched when its SNI matches
 *domain*. **example.com** matches only that host; **\*.example.com**
 matches any of its subdomains but not **example.com** itself. Matching
 is case-insensitive. May be given multiple times. Useful for hosts on
 the local network that break with **--fake**.
 
-**--forward**  
+**--forward**\
 Also handle traffic forwarded through this host, e.g. when running on a
 WireGuard/VPN server or a router. Adds a **forward** hook chain to the
 nftables table (the iptables fallback already sees forwarded packets on
 **mangle/POSTROUTING**).
 
-**--no-rules**  
+**--no-rules**\
 Do not install or clean up any nftables/iptables rules. You are
 responsible for sending outgoing TLS ClientHello packets to the NFQUEUE
 selected by **--queue-num** and for excluding packets injected by
@@ -175,7 +175,7 @@ if another instance is already running on the system.
 */var/log/dpibreak.log*  
 Only for daemon. log goes here.
 
-*%ProgramData%\dpibreak\dpibreak.log*  
+*%ProgramData%\dpibreak\dpibreak.log*\
 Windows service (**-d**) log. Truncated on each start.
 
 ## BUGS
