@@ -156,6 +156,22 @@ add rule inet {DPIBREAK_TABLE} OUTPUT tcp dport 443 @ih,0,8 0x16 @ih,40,8 0x01 q
     );
     nft(&rule)?;
 
+    if opt::forward() {
+        // Traffic routed through this host (VPN server, router) never
+        // traverses OUTPUT. See https://github.com/dilluti0n/dpibreak/issues/31
+        let rule = format!(
+            r#"add chain inet {DPIBREAK_TABLE} FORWARD {{ type filter hook forward priority 0; policy accept; }}
+add rule inet {DPIBREAK_TABLE} FORWARD meta mark {INJECT_MARK} return
+add rule inet {DPIBREAK_TABLE} FORWARD tcp dport 443 @ih,0,8 0x16 @ih,40,8 0x01 queue num {queue_num} bypass"#
+        );
+        // Non-fatal: the OUTPUT rules are already in place, and
+        // failing here would fall back to iptables with the nft table
+        // left behind.
+        if let Err(e) = nft(&rule) {
+            crate::warn!("nftables: --forward: {e}; forwarded traffic will not be handled");
+        }
+    }
+
     // clienthello filtered by nft
     IS_U32_SUPPORTED.store(true, atomic::Ordering::Relaxed);
 
@@ -209,6 +225,9 @@ impl IPTables {
             self.cmd(),
             DPIBREAK_CHAIN
         );
+
+        // Note: mangle/POSTROUTING already sees forwarded packets, so
+        // `--forward` needs no extra rule on the iptables path.
 
         Ok(())
     }
