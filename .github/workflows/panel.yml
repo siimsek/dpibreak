@@ -1,8 +1,9 @@
 name: DPIBreak Panel
 
-# Builds the single-file DPIBreak-Panel.exe (dpibreak.exe and WinDivert
-# embedded) and uploads it as an artifact. Releases are published by
-# hand from that artifact, so they carry the maintainer's name.
+# Checks and builds the single-file DPIBreak-Panel.exe (dpibreak.exe
+# and WinDivert embedded) and uploads it as an artifact. Releases are
+# published by hand from that artifact, so they carry the maintainer's
+# name.
 
 on:
   push:
@@ -24,11 +25,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy (panel, plain build)
+        run: cargo clippy --locked -p dpibreak-gui --all-targets -- -D warnings
+
+      - name: Test panel
+        run: cargo test --locked -p dpibreak-gui
 
       - name: Build single-file panel
         shell: pwsh
         run: ./gui/build-bundle.ps1
+
+      - name: Clippy (panel, bundled build)
+        shell: pwsh
+        run: |
+          $env:DPIBREAK_BUNDLE_DIR = (Resolve-Path target/bundle).Path
+          cargo clippy --locked -p dpibreak-gui --all-targets -- -D warnings
 
       - uses: actions/upload-artifact@v4
         with:
