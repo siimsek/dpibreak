@@ -1,10 +1,11 @@
 ## [Unreleased]
 ### Added
-- DPIBreak Panel (`gui/`, Windows): a single-file control panel with
+- DPIBreak Panel (`gui/`, Windows and Linux): single-file control panels with
   protection status, a connection test that tells DPI, DNS and IP
   blocking apart, a search for working settings, and service
-  management. `dpibreak.exe` and WinDivert are embedded and installed
-  to `%ProgramData%\DPIBreak\bin`.
+  management. The Windows panel embeds `dpibreak.exe` and WinDivert and
+  installs them to `%ProgramData%\DPIBreak\bin`; the Linux panel embeds
+  a static `dpibreak` and installs it to `/usr/local/lib/dpibreak`.
 - `-b, --exclude <domain>`: pass ClientHello through untouched when
   its SNI matches `domain` (`*.example.com` matches subdomains).
   Repeatable. (#26)
@@ -16,6 +17,10 @@
   `%ProgramData%\dpibreak\dpibreak.log`. (#19)
 
 ### Fixed
+- GUI: enable system clipboard support so Copy buttons and Ctrl+C work
+  on Windows and Linux; apply the Linux settings field's edit state
+  immediately and save the settings file when Apply is clicked. Keep
+  the best-settings label inside its row at the default panel width.
 - Linux: a ClientHello larger than the MTU was segmented by NFQUEUE
   and each part handled as a separate ClientHello. NFQUEUE now
   delivers GSO packets whole (`NFQA_CFG_F_GSO`), and injected packets
