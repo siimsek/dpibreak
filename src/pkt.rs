@@ -161,6 +161,16 @@ fn send_segment(view: &PktView, start: u32, end: Option<u32>, buf: &mut Vec<u8>)
     Ok(())
 }
 
+/// Upper bound of TCP payload bytes carried by a single injected
+/// packet.
+///
+/// Packets handed to us may be larger than the path MTU (GSO skbs on
+/// linux, LSO on windows), and writing such a packet to a raw socket
+/// fails with EMSGSIZE. Keep every injected packet below the IPv6
+/// minimum MTU: 1280 - 40 (IPv6 header) - 60 (max TCP header) = 1180,
+/// rounded down for headroom.
+const MAX_SEGMENT_PAYLOAD: u32 = 1160;
+
 fn send_split(view: &PktView, order: &[opt::Segment], buf: &mut Vec<u8>) -> Result<()> {
     let payload_len = view.tcp.payload().len() as u32;
 
@@ -172,13 +182,24 @@ fn send_split(view: &PktView, order: &[opt::Segment], buf: &mut Vec<u8>) -> Resu
             );
             continue;
         }
-        let end = if end == u32::MAX || end > payload_len {
-            None
-        } else {
-            Some(end)
-        };
-        send_segment(view, start, end, buf)?;
-        if end.is_some() {
+
+        // `end == u32::MAX` means "until the end of payload".
+        let is_bounded = end != u32::MAX && end <= payload_len;
+        let seg_end = end.min(payload_len);
+
+        let mut chunk_start = start;
+        while chunk_start < seg_end {
+            let chunk_end = chunk_start.saturating_add(MAX_SEGMENT_PAYLOAD).min(seg_end);
+            let chunk_end_opt = if chunk_end == payload_len {
+                None
+            } else {
+                Some(chunk_end)
+            };
+            send_segment(view, chunk_start, chunk_end_opt, buf)?;
+            chunk_start = chunk_end;
+        }
+
+        if is_bounded && opt::delay_ms() > 0 {
             std::thread::sleep(std::time::Duration::from_millis(opt::delay_ms()));
         }
     }

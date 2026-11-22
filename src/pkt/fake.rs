@@ -94,6 +94,15 @@ pub fn fake_clienthello(
         return Ok(false);
     }
 
+    // The fake payload is shorter than most real ClientHellos; clamp
+    // the segment to it, and skip segments that start beyond it.
+    let fake_len = DEFAULT_FAKE_TLS_CLIENTHELLO.len() as u32;
+    if start >= fake_len {
+        crate::debug!("fake: segment start {start} beyond fake payload ({fake_len}); skip");
+        return Ok(false);
+    }
+    let end = end.filter(|&e| e < fake_len);
+
     super::build_packet(
         view,
         start,

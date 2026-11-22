@@ -118,6 +118,17 @@ fn open_nfqueue() -> Result<nfq::Queue> {
     q.bind(opt::queue_num())?;
     crate::info!("nfqueue: bound to queue number {}", opt::queue_num());
 
+    // Without NFQA_CFG_F_GSO, nf_queue() segments GSO skbs larger
+    // than the MTU before delivering them to userspace, so a single
+    // large ClientHello arrives as several packets and each of them
+    // is treated as an independent ClientHello. Receive the whole skb
+    // instead; send_split() keeps every injected packet under the MTU.
+    // See https://github.com/dilluti0n/dpibreak/issues/24
+    match q.set_recv_gso(opt::queue_num(), true) {
+        Ok(()) => crate::info!("nfqueue: GSO packets will be received unsegmented"),
+        Err(e) => crate::warn!("nfqueue: failed to set NFQA_CFG_F_GSO: {e}"),
+    }
+
     // to check inturrupts
     let fd = q.as_raw_fd();
     let fl = fcntl(fd, FcntlArg::F_GETFL)?;
