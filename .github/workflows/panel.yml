@@ -1,13 +1,14 @@
 name: DPIBreak Panel
 
-# Checks and builds the single-file DPIBreak-Panel.exe (dpibreak.exe
-# and WinDivert embedded) and uploads it as an artifact. Releases are
-# published by hand from that artifact, so they carry the maintainer's
-# name.
+# Checks and builds the single-file panels and uploads them as
+# artifacts: DPIBreak-Panel.exe (dpibreak.exe and WinDivert embedded)
+# and DPIBreak-Panel-linux-x86_64 (static dpibreak embedded). Releases
+# are published by hand from these artifacts, so they carry the
+# maintainer's name.
 
 on:
   push:
-    branches: [feature/gui]
+    branches: [feature/gui, feature/gui-linux]
     paths:
       - "gui/**"
       - "src/**"
@@ -52,4 +53,44 @@ jobs:
         with:
           name: DPIBreak-Panel
           path: dist/DPIBreak-Panel.exe
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends musl-tools \
+            libx11-dev libxcursor-dev libxrandr-dev libxi-dev libxkbcommon-dev \
+            libwayland-dev libgl1-mesa-dev libegl1-mesa-dev
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy (panel, plain build)
+        run: cargo clippy --locked -p dpibreak-gui --all-targets -- -D warnings
+
+      - name: Test panel
+        run: cargo test --locked -p dpibreak-gui
+
+      - name: Build single-file panel
+        run: sh gui/build-bundle.sh
+
+      - name: Clippy (panel, bundled build)
+        run: |
+          DPIBREAK_BUNDLE_DIR="$PWD/target/bundle-linux" \
+            cargo clippy --locked -p dpibreak-gui --all-targets -- -D warnings
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DPIBreak-Panel-linux-x86_64
+          path: dist/DPIBreak-Panel-linux-x86_64
           if-no-files-found: error
