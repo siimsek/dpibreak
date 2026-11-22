@@ -52,7 +52,9 @@ as root.
 .RS
 .PP
 On Windows, this option enters the service controller entry
-point. Example:
+point and logs are written to
+.BR %ProgramData%\edpibreak\edpibreak.log .
+Example:
 .B sc create dpibreak binPath= \(dqdpibreak.exe \-d\(dq start= auto; sc start dpibreak
 .RE
 .TP
@@ -122,6 +124,40 @@ used for IPv4 and IPv6. (Default: 1)
 .B \-\-nft\-command \fI<string>\fR
 .Linux only.
 Custom nftables command to be executed. (Default: nft)
+.TP
+.BR \-b ", " \-\-exclude " \fI<domain>\fR"
+Pass the TLS ClientHello through untouched when its SNI matches
+.IR domain .
+.B example.com
+matches only that host;
+.B *.example.com
+matches any of its subdomains but not
+.B example.com
+itself. Matching is case-insensitive. May be given multiple times.
+Useful for hosts on the local network that break with
+.BR \-\-fake .
+.TP
+.B \-\-forward
+.Linux only.
+Also handle traffic forwarded through this host, e.g. when running on a
+WireGuard/VPN server or a router. Adds a
+.B forward
+hook chain to the nftables table (the iptables fallback already sees
+forwarded packets on
+.BR mangle/POSTROUTING ).
+.TP
+.B \-\-no\-rules
+.Linux only.
+Do not install or clean up any nftables/iptables rules. You are
+responsible for sending outgoing TLS ClientHello packets to the NFQUEUE
+selected by
+.B \-\-queue\-num
+and for excluding packets injected by DPIBreak, which carry firewall
+mark
+.BR 0xd001 ,
+e.g.
+.B meta mark 0xd001 return
+in nftables. ClientHello detection is then done in userspace.
 .TP
 .B \-\-log\-level \fI<debug|info|warning|error>\fR
 Set the logging level (Default: warning).
@@ -199,6 +235,9 @@ file if another instance is already running on the system.
 .TP
 .I /var/log/dpibreak.log
 Only for daemon. log goes here.
+.TP
+.I %ProgramData%\edpibreak\edpibreak.log
+Windows service (\fB\-d\fR) log. Truncated on each start.
 
 .SH BUGS
 There are three types of bugs:

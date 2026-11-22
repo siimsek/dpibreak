@@ -1,3 +1,28 @@
+## [Unreleased]
+### Added
+- `-b, --exclude <domain>`: pass ClientHello through untouched when
+  its SNI matches `domain` (`*.example.com` matches subdomains).
+  Repeatable. (#26)
+- Linux: `--forward` to also handle traffic forwarded through this
+  host (VPN/WireGuard server, router). (#31)
+- Linux: `--no-rules` to skip installing nftables/iptables rules and
+  bring your own. (#28)
+- Windows: the service (`-d`) now logs to
+  `%ProgramData%\dpibreak\dpibreak.log`. (#19)
+
+### Fixed
+- Linux: a ClientHello larger than the MTU was segmented by NFQUEUE
+  and each part handled as a separate ClientHello. NFQUEUE now
+  delivers GSO packets whole (`NFQA_CFG_F_GSO`), and injected packets
+  are split to stay under the MTU. (#24)
+- `--fake-autottl`: hop counts inferred from non-standard server TTLs
+  (e.g. facebook.com) are no longer trusted; fall back to
+  `--fake-ttl` instead of sending a fake packet that reaches the
+  server. (#20)
+- `--fake` with segments beyond the fake payload length (e.g.
+  `-o 0,1,1000`) failed with "invalid index".
+- hoptab unit tests no longer depend on `/dev/urandom`.
+
 ## [DPIBreak v0.6.2] - 2026-07-15
 ### Changed
 Linux:

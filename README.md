@@ -93,8 +93,11 @@ Try `--fake-ttl 6`, if that fails, see the workaround on issue.
 
 ### Traffic forwarded through a WireGuard/VPN server is not handled ([#31](https://github.com/dilluti0n/dpibreak/issues/31))
 
-Run DPIBreak with the script in
-[#31](https://github.com/dilluti0n/dpibreak/issues/31).
+Run DPIBreak with `--forward` (Linux).
+
+### A local/LAN HTTPS service breaks with dpibreak ([#26](https://github.com/dilluti0n/dpibreak/issues/26))
+
+Exclude it by SNI: `-b myserver.lan` or `-b '*.home.example'`.
 
 ## Built upon
 
