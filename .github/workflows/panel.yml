@@ -1,0 +1,45 @@
+name: DPIBreak Panel
+
+# Builds the single-file DPIBreak-Panel.exe (dpibreak.exe and WinDivert
+# embedded). Every run uploads it as an artifact; pushing a tag named
+# panel-v* also attaches it to a GitHub release.
+
+on:
+  push:
+    branches: [feature/gui]
+    tags: ["panel-v*"]
+    paths:
+      - "gui/**"
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/panel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build single-file panel
+        shell: pwsh
+        run: ./gui/build-bundle.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DPIBreak-Panel
+          path: dist/DPIBreak-Panel.exe
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/panel-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/DPIBreak-Panel.exe
+          generate_release_notes: true
