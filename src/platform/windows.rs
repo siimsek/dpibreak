@@ -18,6 +18,7 @@
 use super::paexit;
 use crate::{opt, pkt};
 use anyhow::Result;
+use std::path::PathBuf;
 use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
 use windivert::prelude::{WinDivertError, WinDivertRecvError, WinDivertShutdownMode};
@@ -80,8 +81,41 @@ fn open_handle(filter: &str, flags: prelude::WinDivertFlags) -> WinDivert<Networ
     }
 }
 
+/// Path of the log file used in service mode:
+/// `%ProgramData%\dpibreak\dpibreak.log`.
+fn service_log_path() -> PathBuf {
+    const DIR: &str = env!("CARGO_PKG_NAME");
+    const FILE: &str = concat!(env!("CARGO_PKG_NAME"), ".log");
+
+    let base = std::env::var_os("ProgramData")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(r"C:\ProgramData"));
+    base.join(DIR).join(FILE)
+}
+
+/// A service has no console, so redirect logs to a file. The file is
+/// truncated on every start, like the Linux daemon log.
+fn setup_service_log() -> Result<()> {
+    let path = service_log_path();
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&path)?;
+    if !crate::log::set_sink(file) {
+        anyhow::bail!("log sink already set");
+    }
+    Ok(())
+}
+
 pub fn bootstrap() -> Result<()> {
     if opt::daemon() {
+        // If this fails there is nowhere to report it; logs fall back to
+        // stdout (discarded by the service controller).
+        _ = setup_service_log();
         service_main();
     }
 
@@ -301,7 +335,9 @@ fn service_main() {
         }) {
         Ok(_) => {}
         Err(e) => {
-            println!("{e}");
+            // Also print it: `-d` run by hand from a console lands here.
+            eprintln!("{e}");
+            crate::error!("service: {e}");
             paexit(1);
         }
     };
