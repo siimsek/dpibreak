@@ -1,5 +1,14 @@
 ## Installation
 
+### DPIBreak Panel (Windows, single file)
+
+Download
+[`DPIBreak-Panel.exe`](https://github.com/siimsek/dpibreak/releases/latest/download/DPIBreak-Panel.exe),
+run it and allow administrator access. It contains `dpibreak.exe` and
+the WinDivert driver, installs them to `%ProgramData%\DPIBreak\bin`,
+and can set DPIBreak up as a service from its Service card. Nothing
+else is needed. See [gui/README.md](../gui/README.md).
+
 ### From release zip/tarball
 Windows:
 

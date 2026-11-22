@@ -23,6 +23,21 @@ curl -fsSL https://raw.githubusercontent.com/dilluti0n/dpibreak/master/install.s
 Press `Win`+`R` and type `dpibreak` on Windows, `sudo dpibreak` on
 Linux.  `dpibreak -h` for options.
 
+### DPIBreak Panel (Windows, single file)
+
+Prefer clicking to typing? Download
+[`DPIBreak-Panel.exe`](https://github.com/siimsek/dpibreak/releases/latest/download/DPIBreak-Panel.exe)
+and run it. `dpibreak.exe` and the WinDivert driver are built in, so
+there is nothing else to install. From one window you can:
+
+- see whether protection is on, and start or stop it;
+- test which sites open, and why a blocked one fails (DPI, DNS or IP
+  blocking);
+- let it try every setting and pick the one that works for you;
+- install it as a Windows service that starts with Windows.
+
+See [gui/README.md](./gui/README.md) for details.
+
 [![Packaging status](https://repology.org/badge/vertical-allrepos/dpibreak.svg)](https://repology.org/project/dpibreak/versions)
 
 - Other install methods: <https://dilluti0n.com/dpibreak>
@@ -40,6 +55,9 @@ dpibreak -d               # run as daemon
 dpibreak -o 0,5           # if a site breaks that worked before
 dpibreak -a               # if bypass does not work
 dpibreak -o 0,5 -a        # combined
+dpibreak -b example.lan   # leave a site untouched
+sudo dpibreak --forward   # Linux: also handle routed traffic (VPN server, router)
+sudo dpibreak --no-rules  # Linux: use your own nftables/iptables rules
 
 dpibreak --help
 ```
@@ -76,6 +94,17 @@ this feature enabled, the university's DPI was also successfully
 bypassed, so I expect it to be helpful in many other use cases as
 well.
 
+With `-a`, the hop count to each server is inferred from its TTL. When
+the result is implausible (a server with a non-standard initial TTL),
+DPIBreak falls back to `--fake-ttl` instead of sending a fake packet
+that could reach the server.
+
+### Exclude
+
+`-b, --exclude <domain>` leaves the ClientHello of matching sites
+untouched: `example.com` matches only that host, `*.example.com` its
+subdomains. Repeat it for more sites.
+
 ## Troubleshooting
 
 ### Winget upgrade fails ([#21](https://github.com/dilluti0n/dpibreak/issues/21))
@@ -89,7 +118,9 @@ Try `-o 0,5`.
 
 ### `-a, --fake-autottl` make things worse ([#20](https://github.com/dilluti0n/dpibreak/issues/20))
 
-Try `--fake-ttl 6`, if that fails, see the workaround on issue.
+Sites with a non-standard server TTL now fall back to `--fake-ttl`
+automatically. If things are still worse, try `--fake-ttl 6`; if that
+fails, see the workaround on the issue.
 
 ### Traffic forwarded through a WireGuard/VPN server is not handled ([#31](https://github.com/dilluti0n/dpibreak/issues/31))
 
@@ -98,6 +129,16 @@ Run DPIBreak with `--forward` (Linux).
 ### A local/LAN HTTPS service breaks with dpibreak ([#26](https://github.com/dilluti0n/dpibreak/issues/26))
 
 Exclude it by SNI: `-b myserver.lan` or `-b '*.home.example'`.
+
+### I want to manage the firewall rules myself ([#28](https://github.com/dilluti0n/dpibreak/issues/28))
+
+Run DPIBreak with `--no-rules` (Linux) and send outgoing TLS
+ClientHellos to the NFQUEUE given by `--queue-num`. Exclude packets
+with firewall mark `0xd001`, which DPIBreak uses for its own packets.
+
+### Where is the Windows service log? ([#19](https://github.com/dilluti0n/dpibreak/issues/19))
+
+`%ProgramData%\dpibreak\dpibreak.log`, recreated on each start.
 
 ## Built upon
 

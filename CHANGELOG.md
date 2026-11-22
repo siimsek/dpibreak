@@ -1,5 +1,10 @@
 ## [Unreleased]
 ### Added
+- DPIBreak Panel (`gui/`, Windows): a single-file control panel with
+  protection status, a connection test that tells DPI, DNS and IP
+  blocking apart, a search for working settings, and service
+  management. `dpibreak.exe` and WinDivert are embedded and installed
+  to `%ProgramData%\DPIBreak\bin`.
 - `-b, --exclude <domain>`: pass ClientHello through untouched when
   its SNI matches `domain` (`*.example.com` matches subdomains).
   Repeatable. (#26)
