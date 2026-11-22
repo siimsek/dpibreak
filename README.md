@@ -23,18 +23,29 @@ curl -fsSL https://raw.githubusercontent.com/dilluti0n/dpibreak/master/install.s
 Press `Win`+`R` and type `dpibreak` on Windows, `sudo dpibreak` on
 Linux.  `dpibreak -h` for options.
 
-### DPIBreak Panel (Windows, single file)
+### DPIBreak Panel (Windows and Linux)
 
 Prefer clicking to typing? Download
 [`DPIBreak-Panel.exe`](https://github.com/siimsek/dpibreak/releases/latest/download/DPIBreak-Panel.exe)
-and run it. `dpibreak.exe` and the WinDivert driver are built in, so
-there is nothing else to install. From one window you can:
+on Windows, or
+[`DPIBreak-Panel-linux-x86_64`](https://github.com/siimsek/dpibreak/releases/latest/download/DPIBreak-Panel-linux-x86_64)
+on Linux. Both are single-file panels with DPIBreak built in. From one
+window you can:
 
 - see whether protection is on, and start or stop it;
 - test which sites open, and why a blocked one fails (DPI, DNS or IP
   blocking);
 - let it try every setting and pick the one that works for you;
-- install it as a Windows service that starts with Windows.
+- install it as a Windows service or a Linux systemd service.
+
+On Linux, run the panel as your desktop user. It asks `pkexec` for
+administrator access only when installing or changing the systemd
+service. The service uses `/usr/local/lib/dpibreak/dpibreak`, and its
+logs are shown from the systemd journal. The release binary targets
+x86-64 systems with glibc 2.35 or newer, including Debian 12+, Ubuntu
+22.04+ and Arch Linux. It needs an X11 or Wayland desktop with OpenGL
+libraries; service installation also needs systemd, polkit and nftables
+(or iptables) with NFQUEUE support.
 
 See [gui/README.md](./gui/README.md) for details.
 
