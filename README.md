@@ -38,10 +38,11 @@ window you can:
 - let it try every setting and pick the one that works for you;
 - install it as a Windows service or a Linux systemd service.
 
-On Linux, run the panel as your desktop user. It asks `pkexec` for
-administrator access only when installing or changing the systemd
-service. The service uses `/usr/local/lib/dpibreak/dpibreak`, and its
-logs are shown from the systemd journal. The release binary targets
+On Linux, run the panel as your desktop user. It uses `pkexec` to start
+a helper for privileged actions and reuses that helper while the panel
+stays open, so it does not ask for a password on every action. The
+service uses `/usr/local/lib/dpibreak/dpibreak`, and its logs are shown
+from the systemd journal. The release binary targets
 x86-64 systems with glibc 2.35 or newer, including Debian 12+, Ubuntu
 22.04+ and Arch Linux. It needs an X11 or Wayland desktop with OpenGL
 libraries; service installation also needs systemd, polkit and nftables

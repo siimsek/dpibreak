@@ -20,7 +20,8 @@
 - GUI: enable system clipboard support so Copy buttons and Ctrl+C work
   on Windows and Linux; apply the Linux settings field's edit state
   immediately and save the settings file when Apply is clicked. Keep
-  the best-settings label inside its row at the default panel width.
+  the best-settings label, result dots and score inside each row at the
+  minimum panel width.
 - Linux: a ClientHello larger than the MTU was segmented by NFQUEUE
   and each part handled as a separate ClientHello. NFQUEUE now
   delivers GSO packets whole (`NFQA_CFG_F_GSO`), and injected packets
