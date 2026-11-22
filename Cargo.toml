@@ -29,7 +29,7 @@ homepage = "https://github.com/dilluti0n/dpibreak"
 readme = "README.md"
 
 [workspace]
-members = ["crates/windivert/"]
+members = ["crates/windivert/", "gui/"]
 
 [dependencies]
 anyhow = "1"
