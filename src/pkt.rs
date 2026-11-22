@@ -214,12 +214,24 @@ fn send_split(view: &PktView, order: &[opt::Segment], buf: &mut Vec<u8>) -> Resu
     Ok(())
 }
 
+/// Hop counts above this are treated as an inference failure.
+///
+/// Real internet paths are rarely longer than ~30 hops. A larger
+/// result almost always means the server uses a non-standard initial
+/// TTL (e.g. facebook.com, see
+/// https://github.com/dilluti0n/dpibreak/issues/20), and trusting it
+/// would let the fake ClientHello reach the server.
+const MAX_PLAUSIBLE_HOPS: u8 = 32;
+
 /// Crudely infer hop from ttl
 ///
 /// Assume server initial TTL is one of: 64, 128, 255.
 /// Pick the smallest origin that can produce the observed TTL (origin >= ttl),
 /// then hops = origin - ttl.
-fn infer_hops(ttl: u8) -> u8 {
+///
+/// Returns `None` if the result is implausible (> [`MAX_PLAUSIBLE_HOPS`]),
+/// in which case the caller should fall back to a fixed TTL.
+fn infer_hops(ttl: u8) -> Option<u8> {
     let origin = if ttl <= 64 {
         64u8
     } else if ttl <= 128 {
@@ -228,14 +240,23 @@ fn infer_hops(ttl: u8) -> u8 {
         255u8
     };
 
-    origin - ttl
+    let hops = origin - ttl;
+    (hops <= MAX_PLAUSIBLE_HOPS).then_some(hops)
 }
 
 fn put_hop_1(pkt: &[u8]) -> Result<()> {
     let view = PktView::from_raw(pkt)?;
     let addr = view.saddr();
     let ttl = view.ttl();
-    let hop = infer_hops(view.ttl());
+
+    let Some(hop) = infer_hops(ttl) else {
+        crate::debug!(
+            "put_hop_1: {}: observed ttl={} gives implausible hop count; not cached",
+            addr,
+            ttl
+        );
+        return Ok(());
+    };
 
     crate::debug!("put_hop_1: {}: observed ttl={}, put hop={}", addr, ttl, hop);
 
@@ -285,4 +306,32 @@ macro_rules! handle_packet {
             }
         }
     }};
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn infer_hops_standard_origins() {
+        assert_eq!(infer_hops(64), Some(0));
+        assert_eq!(infer_hops(52), Some(12));
+        assert_eq!(infer_hops(115), Some(13));
+        assert_eq!(infer_hops(128), Some(0));
+        assert_eq!(infer_hops(240), Some(15));
+        assert_eq!(infer_hops(255), Some(0));
+    }
+
+    #[test]
+    fn infer_hops_rejects_implausible() {
+        // facebook.com case from issue #20: ttl 86 -> 42 "hops" from 128
+        assert_eq!(infer_hops(86), None);
+        assert_eq!(infer_hops(1), None);
+        assert_eq!(infer_hops(129), None);
+        assert_eq!(
+            infer_hops(64 - MAX_PLAUSIBLE_HOPS),
+            Some(MAX_PLAUSIBLE_HOPS)
+        );
+        assert_eq!(infer_hops(64 - MAX_PLAUSIBLE_HOPS - 1), None);
+    }
 }

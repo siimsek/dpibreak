@@ -81,7 +81,10 @@ pub fn fake_clienthello(
             }
             Err(e) => {
                 let fake_ttl = opt::fake_ttl();
-                crate::warn!("autottl: sv_hop_find: {e}; fallback to {fake_ttl}");
+                // info, not warn: this is expected for servers whose
+                // hop count could not be inferred (see infer_hops),
+                // and would otherwise be printed on every connection.
+                crate::info!("autottl: sv_hop_find: {e}; fallback to {fake_ttl}");
                 fake_ttl
             }
         }
